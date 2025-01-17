@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
+data/Guirca/~$5 INFORMACION PRODUCTOS.xlsx
+data/Widmann/~$Data_Full_Information_String.xlsx
+venv/
+.~lock.database_globale_test.csv#
+.~lock.Mapping.csv#
