@@ -1,8 +1,10 @@
 import pandas as pd
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 import os
 import logging
 from config import Config
+import re
+from collections import defaultdict
 
 class CatalogProcessor:
     def __init__(self, config: Config):
@@ -10,6 +12,21 @@ class CatalogProcessor:
         self.supplier_mappings: Dict[str, Dict[str, List[str]]] = {}
         self.magento_fields: List[str] = []
         self.default_values: Dict[str, Any] = {}
+        self._descriptive_fields_cache: Dict[str, Dict[str, bool]] = {}  # Cache per fornitore
+        self.field_categories = {
+            'dimensions': r'(?i)(dimension|size|talla|misur|altezza|larghezza|prof|taglia)',
+            'colors': r'(?i)(colou?r|colore?s)',
+            'materials': r'(?i)(material|compos|fabric|tessut)',
+            'categories': r'(?i)(categ|tipo|class|group)',
+            'descriptions': r'(?i)(desc|detail|spec|caratt)',
+            'themes': r'(?i)(theme|tema|occas|event)',
+            'features': r'(?i)(feat|carat|funz|options)',
+            'brand': r'(?i)(brand|marca|produt|manufac)',
+            'target': r'(?i)(target|età|age|gender|sex)',
+            'packaging': r'(?i)(pack|conf|imballo|content)',
+            'season': r'(?i)(season|stag|temp)',
+            'technical': r'(?i)(tech|specs|specific)'
+        }
 
     def load_mapping(self) -> None:
         """Load and parse the mapping file."""
@@ -55,6 +72,129 @@ class CatalogProcessor:
             filename = f"{filename.split('.')[0]}.jpg"
         return filename
 
+    def analyze_field_content(self, values: pd.Series) -> Dict[str, float]:
+        """Analizza il contenuto di un campo e restituisce le metriche."""
+        non_empty = values.dropna().astype(str)
+        if len(non_empty) == 0:
+            return {"score": 0, "is_descriptive": False}
+
+        metrics = {
+            "avg_length": non_empty.str.len().mean(),
+            "avg_words": non_empty.str.split().str.len().mean(),
+            "unique_ratio": len(non_empty.unique()) / len(non_empty),
+            "numeric_ratio": non_empty.str.contains(r'^\d+$').mean(),
+            "special_chars_ratio": non_empty.str.contains(r'[^a-zA-Z0-9\s]').mean()
+        }
+        
+        # Calcola uno score complessivo
+        score = (
+            (metrics["avg_length"] > 15) * 2 +
+            (metrics["avg_words"] > 3) * 2 +
+            (metrics["unique_ratio"] > 0.3) * 1.5 +
+            (metrics["numeric_ratio"] < 0.5) * 1 +
+            (metrics["special_chars_ratio"] < 0.3) * 0.5
+        )
+        
+        return {
+            **metrics,
+            "score": score,
+            "is_descriptive": score > 3  # Soglia per considerare un campo descrittivo
+        }
+
+    def get_descriptive_fields(self, df: pd.DataFrame, mapped_columns: Set[str]) -> Dict[str, bool]:
+        """Identifica i campi descrittivi nel DataFrame."""
+        descriptive_fields = {}
+        
+        for col in df.columns:
+            if col not in mapped_columns and df[col].dtype == object:
+                analysis = self.analyze_field_content(df[col])
+                descriptive_fields[col] = analysis["is_descriptive"]
+                
+                if analysis["is_descriptive"]:
+                    logging.debug(f"Campo descrittivo trovato: {col} (score: {analysis['score']:.2f})")
+                    
+        return descriptive_fields
+
+    def create_context(self, row: pd.Series, descriptive_fields: Dict[str, bool]) -> Dict[str, str]:
+        """Crea il contesto per una riga usando solo i campi descrittivi."""
+        context = {}
+        
+        for col, is_descriptive in descriptive_fields.items():
+            if is_descriptive and not pd.isna(row[col]):
+                value = str(row[col]).strip()
+                if value and len(value) > 10:
+                    context[col.lower()] = value
+                    
+        return context if context else None
+
+    def is_descriptive_field(self, field_values: pd.Series) -> bool:
+        """Determine if a field contains descriptive content based on its values."""
+        if field_values.dtype == object:  # solo campi testuali
+            # Calcola statistiche sul campo
+            non_empty_values = field_values.dropna().astype(str)
+            if len(non_empty_values) == 0:
+                return False
+                
+            avg_length = non_empty_values.str.len().mean()
+            word_counts = non_empty_values.str.split().str.len()
+            avg_words = word_counts.mean() if not word_counts.empty else 0
+            
+            # Un campo è considerato descrittivo se:
+            # - Ha in media più di X caratteri
+            # - Ha in media più di Y parole
+            # - Non contiene valori ripetuti frequentemente (varietà)
+            unique_ratio = len(non_empty_values.unique()) / len(non_empty_values)
+            
+            return (avg_length > 15 and  # lunghezza media minima
+                    avg_words > 3 and    # numero medio di parole
+                    unique_ratio > 0.3)   # varietà dei valori
+        return False
+
+    def categorize_field(self, field_name: str) -> str:
+        """Categorizza un campo in base al suo nome."""
+        field_lower = field_name.lower()
+        for category, pattern in self.field_categories.items():
+            if re.search(pattern, field_lower):
+                return category
+        return 'other'
+
+    def is_valuable_content(self, value: Any) -> bool:
+        """Verifica se un valore contiene informazioni utili."""
+        if pd.isna(value):
+            return False
+        str_value = str(value).strip()
+        if not str_value or str_value.lower() == 'nan':
+            return False
+        # Esclude valori troppo corti o solo numerici
+        if len(str_value) < 2 or str_value.isdigit():
+            return False
+        return True
+
+    def create_universal_context(self, row: pd.Series, df_columns: List[str], mapped_columns: Set[str]) -> Dict[str, Any]:
+        """Crea un contesto universale per il prodotto."""
+        context = defaultdict(list)
+        
+        for col in df_columns:
+            if col not in mapped_columns and self.is_valuable_content(row[col]):
+                value = str(row[col]).strip()
+                category = self.categorize_field(col)
+                context[category].append({
+                    'field': col,
+                    'value': value
+                })
+        
+        # Organizza il contesto finale
+        final_context = {}
+        for category, items in context.items():
+            if items:  # Solo categorie non vuote
+                if len(items) == 1:
+                    final_context[category] = items[0]['value']
+                else:
+                    # Combina valori multipli della stessa categoria
+                    final_context[category] = [item['value'] for item in items]
+        
+        return final_context if final_context else None
+
     def process_catalog(self, supplier_name: str, file_path: str) -> Optional[pd.DataFrame]:
         """Process a single catalog file."""
         try:
@@ -70,6 +210,24 @@ class CatalogProcessor:
                 return None
                 
             processed = pd.DataFrame(index=df.index)
+
+            # Create set of all mapped supplier columns
+            mapped_columns = set()
+            for magento_field, supplier_cols in mapping.items():
+                mapped_columns.update(supplier_cols)
+
+            # Identifica i campi descrittivi una volta sola per fornitore
+            if supplier_key not in self._descriptive_fields_cache:
+                self._descriptive_fields_cache[supplier_key] = self.get_descriptive_fields(df, mapped_columns)
+            
+            descriptive_fields = self._descriptive_fields_cache[supplier_key]
+            
+            # Create universal context
+            processed['additional_context'] = df.apply(
+                lambda row: self.create_universal_context(row, df.columns, mapped_columns),
+                axis=1
+            )
+
             logging.info(f"Processing {len(self.magento_fields)} Magento fields for {supplier_name}")
             
             # Process each Magento field

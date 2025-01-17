@@ -6,10 +6,27 @@ base_image,,LINK,Nome_Immagine_1_,
 small_image,,LINK,Nome_Immagine_1_,
 thumbnail_image,,LINK,Nome_Immagine_1_,
 price,,PVP RECOMENDADO,Prezzo_Listino_PZ_€,
-name,,,,Genera un nome prodotto SEO-friendly di massimo 70 caratteri. Prodotto: {name}. Caratteristiche: {color} {size}
-description,,,,Genera una descrizione dettagliata per questo prodotto di carnevale/costume.\nNome: {name}\nCaratteristiche: {color} {size}\nScrivi 500-800 caratteri evidenziando caratteristiche materiali e occasioni d'uso.
-short_description,,,,Genera una breve descrizione di 150-200 caratteri per {name}. Evidenzia i punti di forza principali considerando: categoria {categories} tema {tema} colore {color}.
-url_key,,,,Genera un URL SEO-friendly per {name}. Usa solo lettere minuscole numeri e trattini. Lunghezza massima 50 caratteri.
+name,,,,Genera in italiano un nome prodotto SEO-friendly di massimo 70 caratteri basandoti su queste informazioni: {additional_context}
+description,,,,Genera una descrizione in italiano strutturata in HTML (500-800 caratteri) per questo prodotto basandoti su: {additional_context}. Usa questo formato:
+<div class="product-description">
+    <h2>Descrizione del Prodotto</h2>
+    <div class="overview">
+        <p>[Breve introduzione al prodotto, 1-2 frasi]</p>
+    </div>
+    
+    <h3>Caratteristiche Principali</h3>
+    <ul>
+        <li>[3-4 punti chiave sulle caratteristiche]</li>
+    </ul>
+    
+    <h3>Materiali e Qualità</h3>
+    <p>[Descrizione materiali e costruzione]</p>
+    
+    <h3>Utilizzo Consigliato</h3>
+    <p>[Occasioni d'uso e consigli]</p>
+</div>
+short_description,,,,Genera in italiano una breve descrizione di 150-200 caratteri basandoti su queste informazioni: {additional_context}
+url_key,,,,Genera un URL SEO-friendly basandoti su queste informazioni: {additional_context}. Usa solo lettere minuscole numeri e trattini. Lunghezza massima 50 caratteri.
 categories,,,,
 attribute_set_code,Default,,,
 size,,TALLA,Taglia,

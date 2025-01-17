@@ -2,6 +2,7 @@ import pandas as pd
 import openai
 import logging
 import time
+import numpy as np  # Aggiungi import per random
 from typing import Dict, Optional
 from config import Config
 
@@ -11,7 +12,28 @@ class ContentEnricher:
         self.prompts: Dict[str, str] = {}
         self.openai_client = openai.OpenAI(api_key=config.openai_api_key)
         self.fields_to_enrich = ['name', 'description', 'short_description', 'url_key']
-        
+        self.html_template = """
+<div class="product-description">
+    <h2>Descrizione del Prodotto</h2>
+    <div class="overview">
+        <p>{overview}</p>
+    </div>
+    
+    <h3>Caratteristiche Principali</h3>
+    <ul>
+        <li>{feature1}</li>
+        <li>{feature2}</li>
+        <li>{feature3}</li>
+    </ul>
+    
+    <h3>Materiali e Qualità</h3>
+    <p>{materials}</p>
+    
+    <h3>Utilizzo Consigliato</h3>
+    <p>{usage}</p>
+</div>
+"""
+
     def load_prompts(self):
         """Load prompt templates from mapping file."""
         try:
@@ -35,31 +57,56 @@ class ContentEnricher:
             logging.error(f"Error loading prompts: {e}")
             raise
 
+    def format_html_description(self, raw_content: str) -> str:
+        """Formatta il contenuto in HTML se non rispetta il template."""
+        try:
+            # Se il contenuto ha già i tag HTML corretti, lo restituisce
+            if all(tag in raw_content.lower() for tag in ['<div', '<h2', '<h3', '<p', '<ul', '<li']):
+                return raw_content
+                
+            # Altrimenti, estrae le informazioni e le formatta
+            lines = raw_content.split('\n')
+            overview = lines[0] if lines else "Scopri questo fantastico prodotto"
+            features = [l.strip('- ').strip() for l in lines[1:4] if l.strip()]
+            while len(features) < 3:
+                features.append("Versatile e di qualità")
+                
+            return self.html_template.format(
+                overview=overview,
+                feature1=features[0],
+                feature2=features[1],
+                feature3=features[2],
+                materials="Realizzato con materiali di alta qualità selezionati per garantire durata e comfort.",
+                usage="Perfetto per feste in maschera, carnevale, halloween e ogni occasione che richieda un costume originale."
+            )
+        except Exception as e:
+            logging.error(f"Error formatting HTML description: {e}")
+            return raw_content
+
     def generate_content(self, field: str, row: pd.Series) -> Optional[str]:
         """Generate content for a specific field using OpenAI."""
         if field not in self.prompts:
             return None
             
         try:
-            # Get category list as comma-separated string
-            categories = str(row.get('categories', ''))
-            
-            # Prepare context data
+            # Get only additional context
+            additional_context = str(row.get('additional_context', ''))
+            if not additional_context or additional_context.lower() == 'nan':
+                logging.warning(f"No additional context found for SKU {row.get('sku', 'unknown')}")
+                return None
+                
+            # Prepare context with only additional_context
             context = {
-                'name': str(row.get('name', '')),
-                'categories': categories,
-                'tema': str(row.get('tema', '')),
-                'color': str(row.get('color', '')),
-                'size': str(row.get('size', ''))
+                'additional_context': additional_context
             }
             
-            # Format prompt template with cleaned data
+            # Format prompt template
             prompt = self.prompts[field].format(**context)
             
             response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "Sei un copywriter esperto di ecommerce che scrive contenuti per prodotti di carnevale e costumi."},
+                    {"role": "system", "content": "Sei un copywriter italiano esperto di ecommerce che scrive contenuti esclusivamente in italiano per prodotti di carnevale e costumi."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
@@ -68,7 +115,15 @@ class ContentEnricher:
             
             content = response.choices[0].message.content.strip()
             
-            if field == 'url_key':
+            # Log del contenuto generato
+            logging.info(f"\nGenerated {field} for SKU {row.get('sku')}:\n{'='*50}\n{content}\n{'='*50}\n")
+            
+            if field == 'description':
+                content = self.format_html_description(content)
+                # Log della versione formattata HTML se modificata
+                if content != response.choices[0].message.content.strip():
+                    logging.info(f"\nFormatted HTML description for SKU {row.get('sku')}:\n{'='*50}\n{content}\n{'='*50}\n")
+            elif field == 'url_key':
                 content = content.lower().replace(' ', '-')
             
             return content
@@ -88,16 +143,20 @@ class ContentEnricher:
             df = pd.read_csv(self.config.output_file, dtype=str)  # Force string type
             total_rows = len(df)
             
-            # Apply limit if specified
-            if limit and limit > 0:
-                df = df.head(limit)
-                logging.info(f"Processing first {limit} of {total_rows} products")
+            # Select 2 random products
+            test_limit = 2
+            if (total_rows > test_limit):
+                random_indices = np.random.choice(total_rows, test_limit, replace=False)
+                df = df.iloc[random_indices].copy()
             else:
-                logging.info(f"Processing all {total_rows} products")
+                df = df.copy()
+                
+            logging.info(f"Processing {len(df)} random products from {total_rows} total products")
+            logging.info(f"Selected SKUs: {', '.join(df['sku'].tolist())}")
             
             # Process each product
             for idx, row in df.iterrows():
-                logging.info(f"Processing product {idx+1}/{len(df)}: {row['sku']}")
+                logging.info(f"\nProcessing product {idx+1}/{len(df)}: {row['sku']}\n{'-'*50}")
                 
                 for field in self.fields_to_enrich:
                     current_value = str(df.at[idx, field])
@@ -119,10 +178,13 @@ class ContentEnricher:
             if limit and limit > 0:
                 # Save to a test file instead
                 test_file = self.config.output_file.replace('.csv', '_test.csv')
-                df.to_csv(test_file, index=False)
+                # Remove additional_context before saving
+                df_output = df.drop(columns=['additional_context'], errors='ignore')
+                df_output.to_csv(test_file, index=False)
                 logging.info(f"Test results saved to: {test_file}")
             else:
-                df.to_csv(self.config.output_file, index=False)
+                df_output = df.drop(columns=['additional_context'], errors='ignore')
+                df_output.to_csv(self.config.output_file, index=False)
                 logging.info("Content enrichment completed")
             
         except Exception as e:

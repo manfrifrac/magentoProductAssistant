@@ -22,13 +22,13 @@ def main():
         logging.info("Loading prompt templates...")
         enricher.load_prompts()
         
-        # Process database - limit to 10 products for testing
+        # Process database - limit to exactly 3 random products
         logging.info("Starting content enrichment process...")
-        enricher.process_database(limit=10)
+        enricher.process_database(limit=3)
         
     except Exception as e:
         logging.error(f"Content enrichment failed: {e}")
         raise
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     main()
