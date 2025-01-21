@@ -1,0 +1,14 @@
+supplier,supplier_field,context_type,description
+Guirca,ARTICULO,product_code,Product code
+Guirca,DESCRIPCION,description,Product description
+Guirca,TEMPORADA,season,Season information
+Guirca,COLOR,color,Color information
+Guirca,TEMA,theme,Theme information
+Guirca,MATERIAL,material,Material information
+Guirca,TALLA,size,Size information
+Widmann,Descrizione,description,Product description
+Widmann,Taglia,size,Size information
+Widmann,Avvertenze,warnings,Warning information
+Widmann,Colore,color,Color information
+Widmann,Tema,theme,Theme information
+Widmann,Materiale,material,Material information

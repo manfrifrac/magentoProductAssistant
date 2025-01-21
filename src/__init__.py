@@ -1,0 +1,3 @@
+"""
+MagentoProductAssistant source package
+"""

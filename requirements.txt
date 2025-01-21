@@ -4,3 +4,5 @@ openpyxl>=3.1.0  # For Excel file support
 openai>=1.0.0
 python-dotenv>=1.0.0  # For environment variables
 types-openpyxl>=3.1.0  # Type stubs for openpyxl
+rich
+beautifulsoup4

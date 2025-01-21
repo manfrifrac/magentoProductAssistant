@@ -1,4 +1,3 @@
-
 """
-MagentoProductAssistant - A tool for processing and combining product catalogs
+MagentoProductAssistant main package
 """
