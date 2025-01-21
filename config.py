@@ -16,13 +16,18 @@ class Config:
         self.output_folder = self.data_folder / "output"
         self.context_mapping_file = self.base_dir / "src/context/context_mapping.csv"
         self.mapping_file = self.base_dir / "src/Mapping.csv"  # Changed to use root Mapping.csv
-        self.output_file = self.data_folder / "database_globale.csv"
-        self.prompts_file = self.data_folder / "prompts.csv"
+        self.output_file = self.output_folder / "global_database.csv"
+        
+        # Enrichment related paths
+        self.prompts_file = self.base_dir / "src/enrich/prompts.csv"
+        self.global_database_file = self.output_folder / "global_database.csv"
+        self.enriched_database_file = self.output_folder / "enriched_database.csv"
         
         # Create directory structure
         self._initialize_directories()
         
-        self.openai_api_key = self._load_openai_key()
+        # OpenAI configuration
+        self.openai_api_key = "your-api-key-here"
 
     def _initialize_directories(self) -> None:
         """Create necessary directories and check for required files"""

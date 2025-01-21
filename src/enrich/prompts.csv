@@ -1,5 +1,5 @@
 field,supplier,prompt
-name,any,"Create an SEO-optimized product name (50-60 chars). Include key terms: {context.get('tema', '')} {context.get('color', '')}. Focus on searchability."
-description,any,"Write an SEO-optimized product description (150-160 words). Use these details:\nTheme: {context.get('tema', '')}\nMaterial: {context.get('material', '')}\nDetails: {context.get('descripcion', '')}"
-short_description,any,"Create a compelling meta description (150-160 chars) focusing on: {context.get('tema', '')} {context.get('color', '')}"
-url_key,any,"Generate an SEO-friendly URL (max 50 chars) using: {context.get('tema', '')}-{context.get('color', '')}. Use hyphens, lowercase."
+name,any,"Crea un nome prodotto SEO-ottimizzato (50-60 caratteri) per questo articolo: {description}. Tema: {theme}. Colore: {color}"
+description,any,"Scrivi una descrizione prodotto coinvolgente (150-160 parole) per: {description}. Includi questi dettagli: Categoria: {theme}, Colore: {color}, Taglia: {size}"
+short_description,any,"Scrivi una meta descrizione accattivante (150-160 caratteri) per questo costume/accessorio: {description}. Includi dettagli chiave: {theme}, {color}"
+url_key,any,"Genera un URL SEO-friendly (max 50 caratteri) per questo prodotto. Usa queste parole chiave: {description}, {theme}, {color}. Usa trattini, minuscole, no spazi."
