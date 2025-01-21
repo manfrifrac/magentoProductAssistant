@@ -11,7 +11,7 @@ def setup_logging():
     """Configure logging with both file and console output."""
     log_file = Path("catalog_processing.log")
     
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)  # Set to DEBUG level
     formatter = logging.Formatter('%(levelname)s: %(message)s')
     
     console_handler = RichHandler(rich_tracebacks=True, show_time=False)
@@ -21,7 +21,7 @@ def setup_logging():
     file_handler.setFormatter(formatter)
     
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,  # Set to DEBUG level
         handlers=[console_handler, file_handler]
     )
     

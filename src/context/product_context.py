@@ -52,19 +52,21 @@ class ProductContext:
             self.logger.error(f"Error cleaning value {value}: {e}")
             return None
 
-    def get_context(self) -> Dict[str, Any]:
+    def get_context(self) -> str:
+        """Returns all context fields as a single formatted string with key:value pairs"""
         try:
-            context = {}
+            context_pairs = []
             
             for mapping in self.field_mappings:
                 supplier_field = mapping.supplier_field
                 if supplier_field in self.product_data:
                     value = self._clean_value(self.product_data[supplier_field])
                     if value:
-                        context[mapping.context_type] = value
+                        context_pairs.append(f"{mapping.context_type}:{value}")
 
-            return context
+            return " | ".join(context_pairs) if context_pairs else ""
 
         except Exception as e:
             self.logger.error(f"Error generating context: {e}")
-            return {}
+            return ""
+

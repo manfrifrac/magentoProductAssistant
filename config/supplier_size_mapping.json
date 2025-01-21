@@ -1,0 +1,59 @@
+{
+  "size_sets": {
+    "widmann": {
+      "abbigliamento": [
+        "XS", "S", "M", "L", "XL", "2XL", "3XL",
+        "EXTRA SMALL", "SMALL", "MEDIUM", "LARGE", "EXTRA LARGE", "XXL", "XXXL",
+"S/M", "M/L", "L/XL", "UNICA", "TU", "U", "UNIVERSAL"
+      ],
+      "calzature": [
+        "36", "37", "38", "39", "40", "41", "42", "43", "44", "45",
+        "36-37", "38-39", "40-41", "42-43", "44-45",
+        "36/37", "38/39", "40/41", "42/43", "44/45"
+      ],
+      "cappelli": ["54", "56", "58", "60", "UNICA", "TU"],
+      "bambino": [
+        "2-3", "3-4", "5-6", "7-8", "9-10", "11-12",
+        "2/3", "3/4", "5/6", "7/8", "9/10", "11/12",
+        "98", "104", "110", "116", "122", "128", "134", "140",
+        "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y"
+      ]
+    },
+    "guirca": {
+      "abbigliamento": [
+        "S/M", "L/XL", "XXL", "UNICA", "ÚNICA", "UNIVERSAL",
+        "S-M", "L-XL", "S", "M", "L", "XL"
+      ],
+      "bambino": [
+        "2-3", "3-4", "5-6", "7-8", "9-10", "11-12",
+        "2/3", "3/4", "5/6", "7/8", "9/10", "11/12"
+      ],
+      "calzature": [
+        "35-37", "38-40", "41-43",
+        "35/37", "38/40", "41/43"
+      ]
+    }
+  },
+  "category_indicators": {
+    "abbigliamento": [
+      "costume", "vestito", "tuta", "abito", "dress", "suit", 
+      "camicia", "maglia", "pantalone", "gonna"
+    ],
+    "calzature": [
+      "scarpe", "shoes", "stivali", "boots", "calzature", 
+      "scarpa", "stivale", "sandalo", "sandali"
+    ],
+    "cappelli": ["cappello", "hat", "berretto", "copricapo"],
+    "bambino": [
+      "bambino", "child", "kid", "baby", "junior", 
+      "bimbo", "bimba", "children"
+    ]
+  },
+  "size_type_mapping": {
+    "abbigliamento": "clothing",
+    "calzature": "shoes",
+    "cappelli": "accessories",
+    "bambino": "kids",
+    "default": "clothing"
+  }
+}
