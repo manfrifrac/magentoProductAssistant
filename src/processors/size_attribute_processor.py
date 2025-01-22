@@ -26,7 +26,8 @@ class SizeAttributeProcessor:
                 r'(\d+)-(\d+)\s*YEARS?',  # 3-4 YEARS
                 r'(\d+)/(\d+)\s*YEARS?',  # 3/4 YEARS
                 r'(\d+)\s*Y(EARS)?',  # 3Y or 3YEARS
-                r'^(\d{2,3})\s*CM$'  # 110 CM
+                r'^(\d{2,3})\s*CM$',  # 110 CM
+                r'^(\d{1,2})$'  # Single digits for kids sizes (e.g., 5, 8)
             ],
             'calzature': [
                 r'^(\d{2})[-/](\d{2})$',  # 36-37 or 36/37
@@ -51,8 +52,40 @@ class SizeAttributeProcessor:
 
         # Clean and standardize the size value
         size_value = str(size_value).strip().upper()
-        size_value = size_value.replace('(', '').replace(')', '')
         
+        if supplier.lower() == 'espa':
+            # ESPA specific size processing
+            if re.match(r'^[XS|S|M|L|XL|2XL|3XL]$', size_value):
+                return {
+                    'size': size_value,
+                    'size_set': 'abbigliamento',
+                    'size_type': 'clothing'
+                }
+            elif re.match(r'^\d{2}$', size_value):  # Numeric sizes like 42, 44, etc.
+                size_num = int(size_value)
+                if 32 <= size_num <= 54:  # Common clothing sizes
+                    return {
+                        'size': size_value,
+                        'size_set': 'abbigliamento',
+                        'size_type': 'clothing'
+                    }
+                elif 2 <= size_num <= 16:  # Kids sizes
+                    return {
+                        'size': size_value,
+                        'size_set': 'bambino',
+                        'size_type': 'kids'
+                    }
+            
+        # First check if it's a single digit number (likely kids size)
+        if re.match(r'^\d{1,2}$', size_value):
+            numeric_size = int(size_value)
+            if 2 <= numeric_size <= 16:  # Common kids size range
+                return {
+                    'size': size_value,
+                    'size_set': 'bambino',
+                    'size_type': 'kids'
+                }
+
         # First try exact matches from supplier config
         supplier_config = self.config.get('size_sets', {}).get(supplier.lower(), {})
         for set_name, valid_sizes in supplier_config.items():
@@ -124,3 +157,39 @@ class SizeAttributeProcessor:
             return 'abbigliamento'
             
         return 'default'
+
+    def extract_size(self, sku, description, supplier):
+        """Extract size from ESPA product code format"""
+        if supplier.lower() != 'espa':
+            return None
+            
+        # Check size-color column first
+        size_color = description.split('-')[0].strip() if description else None
+        
+        if size_color:
+            # Extract numeric size pattern (e.g., "42" from "42-Black")
+            size_match = re.match(r'^(\d{2,3})', size_color)
+            if size_match:
+                return size_match.group(1)
+            
+            # Extract letter size pattern (e.g., "XL" from "XL-Red") 
+            letter_match = re.match(r'^(XS|S|M|L|XL|XXL|2XL|3XL)', size_color)
+            if letter_match:
+                return letter_match.group(1)
+                
+        return None
+
+    def get_size_set_and_type(self, description):
+        if not description:
+            return 'default', 'default'
+            
+        desc_lower = description.lower()
+        
+        # Check category indicators
+        for category, indicators in self.size_config['category_indicators'].items():
+            for indicator in indicators:
+                if indicator.lower() in desc_lower:
+                    return (category, 
+                           self.size_config['size_type_mapping'].get(category, 'default'))
+                           
+        return 'default', 'default'

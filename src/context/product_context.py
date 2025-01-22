@@ -23,21 +23,23 @@ class ProductContext:
     def load_mapping(self, mapping_file: str) -> None:
         try:
             self.mapping_df = pd.read_csv(mapping_file)
-            mappings = self.mapping_df[
-                self.mapping_df['supplier'] == self.supplier
-            ][['supplier_field', 'context_type']].values.tolist()
+            # Filter for current supplier and drop any rows with missing values
+            supplier_mappings = self.mapping_df[
+                self.mapping_df['supplier'].str.lower() == self.supplier.lower()
+            ].dropna(subset=['supplier_field', 'context_type'])
             
             self.field_mappings = [
                 FieldMapping(str(sf).upper(), ct) 
-                for sf, ct in mappings
+                for sf, ct in supplier_mappings[['supplier_field', 'context_type']].values.tolist()
             ]
             
             if not self.field_mappings:
-                raise ValueError(f"No mappings found for supplier {self.supplier}")
+                self.logger.warning(f"No valid mappings found for supplier {self.supplier}")
+                self.field_mappings = []
                 
         except Exception as e:
             self.logger.error(f"Error loading mappings for {self.supplier}: {e}")
-            raise
+            self.field_mappings = []
 
     def _clean_value(self, value: Any) -> Optional[str]:
         if pd.isna(value) or value is None:

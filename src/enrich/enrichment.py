@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import csv
+import ast
 
 class ProductEnricher:
     def __init__(self):
@@ -103,11 +104,107 @@ class ProductEnricher:
                 return name
         return None
 
+    def clean_context_string(self, context_str):
+        """Clean and validate context string before evaluation."""
+        if pd.isna(context_str):
+            return "{}"
+        
+        # Replace smart quotes with straight quotes
+        context_str = context_str.replace('"', '"').replace('"', '"')
+        context_str = context_str.replace("'", "'").replace("'", "'")
+        
+        # Ensure it's a valid dictionary string
+        try:
+            # Try parsing with ast.literal_eval first
+            return context_str.strip()
+        except:
+            logging.warning(f"Invalid context string: {context_str}")
+            return "{}"
+
+    def parse_context(self, context_str):
+        """Safely parse context string into dictionary."""
+        try:
+            if pd.isna(context_str):
+                return {}
+                
+            if isinstance(context_str, str):
+                cleaned_str = self.clean_context_string(context_str)
+                context = ast.literal_eval(cleaned_str)
+                return context if isinstance(context, dict) else {}
+            elif isinstance(context_str, dict):
+                return context_str
+            else:
+                logging.warning(f"Unexpected context type: {type(context_str)}")
+                return {}
+        except Exception as e:
+            logging.warning(f"Failed to parse context: {str(e)}")
+            return {}
+
+    def parse_context_string(self, context_str):
+        """Parse context string in format 'description: "TEXT" | key:value | key:value'"""
+        if pd.isna(context_str):
+            return {}
+            
+        try:
+            # Split by pipe character
+            parts = [p.strip() for p in str(context_str).split('|')]
+            context = {}
+            
+            for part in parts:
+                if ':' in part:
+                    key, value = part.split(':', 1)
+                    key = key.strip().lower()
+                    value = value.strip()
+                    
+                    # Clean up values
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+                    if key == 'theme':
+                        value = value.split('/')[0].strip()  # Take first theme if multiple
+                    if key == 'color':
+                        value = value.split('/')[0].strip()  # Take first color if multiple
+                        
+                    context[key] = value
+                    
+                    # Extract additional info from description if needed
+                    if key == 'description':
+                        desc_lower = value.lower()
+                        # Try to extract color if not present
+                        if 'color' not in context:
+                            for color in ['rosa', 'blu', 'rosso', 'nero', 'bianco']:
+                                if color in desc_lower:
+                                    context['color'] = color.title()
+                                    break
+                        # Try to extract theme if not present
+                        if 'theme' not in context:
+                            themes = {
+                                'carnevale': 'Carnevale',
+                                'halloween': 'Halloween',
+                                'natale': 'Natale',
+                                'costume': 'Costumi'
+                            }
+                            for theme_key, theme_value in themes.items():
+                                if theme_key in desc_lower:
+                                    context['theme'] = theme_value
+                                    break
+            
+            logging.debug(f"Parsed context: {context}")
+            return context
+            
+        except Exception as e:
+            logging.warning(f"Error parsing context string: {str(e)}")
+            return {}
+
     def enrich_products(self, input_file, output_file, test_mode=False):
         try:
             # Read input CSV
             df = pd.read_csv(input_file)
             logging.info(f"Loaded {len(df)} products from {input_file}")
+            
+            if 'product_context' not in df.columns:
+                logging.error("Required column 'product_context' not found in input file")
+                return False
+
             logging.info(f"Input columns: {df.columns.tolist()}")
 
             if test_mode:
@@ -123,45 +220,53 @@ class ProductEnricher:
             # Process each product
             total = len(df)
             for index, row in df.iterrows():
-                logging.info(f"Processing product {index + 1}/{total}: {row.get('sku', 'Unknown SKU')}")
-                
-                # Parse product context
                 try:
-                    context = eval(row['product_context']) if pd.notna(row.get('product_context')) else {}
-                    logging.info(f"Context for product {row.get('sku', 'Unknown')}: {context}")
+                    sku = row.get('sku', 'Unknown SKU')
+                    logging.info(f"Processing product {index + 1}/{total}: {sku}")
                     
-                    # Use context description as base text if available
-                    description_text = context.get('description', '')
-                    theme = context.get('theme', '')
-                    color = context.get('color', '')
+                    # Parse context with improved logging
+                    context = self.parse_context_string(row['product_context'])
+                    logging.info(f"Raw context for {sku}: {row['product_context']}")
+                    logging.info(f"Parsed context for {sku}: {context}")
                     
-                    # Generate content for each field
-                    df.at[index, 'name'] = self.improve_text(description_text, 'name', context)
-                    df.at[index, 'description'] = self.improve_text(description_text, 'description', context)
-                    df.at[index, 'url_key'] = self.improve_text(f"{theme}-{color}-{row['sku']}", 'url_key', context)
-                    df.at[index, 'short_description'] = self.improve_text(description_text, 'short_description', context)
+                    # Check required fields
+                    required_fields = ['description', 'theme', 'color']
+                    if not all(field in context for field in required_fields):
+                        logging.warning(f"Missing required context fields for {sku}")
+                        logging.warning(f"Available fields: {list(context.keys())}")
+                        continue
                     
-                    logging.info(f"Generated content for product {row['sku']}:")
-                    logging.info(f"Name: {df.at[index, 'name'][:50]}...")
-                    logging.info(f"Description: {df.at[index, 'description'][:50]}...")
-                    logging.info(f"URL Key: {df.at[index, 'url_key']}")
-                    logging.info(f"Short Description: {df.at[index, 'short_description'][:50]}...")
+                    # Generate content for each field using context
+                    df.at[index, 'name'] = self.improve_text("", 'name', context)
+                    df.at[index, 'description'] = self.improve_text("", 'description', context)
+                    df.at[index, 'url_key'] = self.improve_text("", 'url_key', context)
+                    df.at[index, 'short_description'] = self.improve_text("", 'short_description', context)
                     
+                    # Log generated content
+                    logging.info(f"Generated content for {sku}:")
+                    for field in self.fields_to_enrich:
+                        value = df.at[index, field]
+                        logging.info(f"{field}: {value[:100]}...")
+                        
                 except Exception as e:
-                    logging.warning(f"Error processing product {row.get('sku', 'Unknown')}: {e}")
+                    logging.error(f"Error processing product {sku}: {str(e)}")
                     continue
 
                 # Save progress periodically
                 if (index + 1) % 10 == 0:
-                    # Save without product_context column
-                    df.drop(columns=['product_context'], inplace=True)
-                    df.to_csv(output_file, index=False)
+                    # Save progress, dropping product_context if it exists
+                    output_df = df.copy()
+                    if 'product_context' in output_df.columns:
+                        output_df = output_df.drop(columns=['product_context'])
+                    output_df.to_csv(output_file, index=False)
                     logging.info(f"Progress saved: {index + 1}/{total} products")
 
-            # Final save without product_context column
-            df.drop(columns=['product_context'], inplace=True)
-            df.to_csv(output_file, index=False)
-            logging.info(f"Enrichment completed. Output columns: {df.columns.tolist()}")
+            # Final save
+            output_df = df.copy()
+            if 'product_context' in output_df.columns:
+                output_df = output_df.drop(columns=['product_context'])
+            output_df.to_csv(output_file, index=False)
+            logging.info(f"Enrichment completed. Output columns: {output_df.columns.tolist()}")
             return True
 
         except Exception as e:

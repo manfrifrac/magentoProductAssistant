@@ -1,42 +1,42 @@
-"magento_field","required","default","guirca","widmann"
-"sku","yes","","ARTICULO","Codice_prodotto_SKU_Widmann"
-"fornitore","","","",""
-"EAN","yes","","EAN","EAN"
-"base_image","yes","","LINK","Nome_Immagine_1_"
-"small_image","yes","","LINK","Nome_Immagine_1_"
-"thumbnail_image","yes","","LINK","Nome_Immagine_1_"
-"price","yes","","PVP RECOMENDADO","Prezzo_Listino_PZ_€"
-"name","","","",""
-"description","","","",""
-"short_description","","","",""
-"url_key","yes","","",""
-"categories","","","",""
-"attribute_set_code","","Default","",""
-"size","","","TALLA","Taglia"
-"color","","","COLORES","Colore"
-"product_type","","simple","",""
-"product_websites","","base","",""
-"tax_class_name","","Taxable Goods","",""
-"visibility","","Catalog Search","",""
-"display_product_options_in","","Block after Info Column","",""
-"msrp_display_actual_price_type","","Use config","",""
-"additional_images","","","Link_DisfrazDetalle3","Nome_Immagine_2"
-"additional_images","","","Link_DisfrazDetalle2","Nome_Immagine_3"
-"additional_images","","","Link_DisfrazDetalle1","Nome_Immagine_4"
-"additional_images","","","Link_DisfrazConPack","Nome_Immagine_5"
-"additional_images","","","Link_DisfrazUnisex",""
-"additional_images","","","Link_DisfrazBack",""
-"additional_images","","","Link_DisfrazCatalogo",""
-"additional_images","","","Link_AccesoriosCatalogo",""
-"additional_images","","","Link_AccesoriosSINPACK",""
-"additional_images","","","Link_AccesoriosPACK",""
-"additional_images","","","Link_DecoBaterias",""
-"additional_images","","","Link_DecoDetalle",""
-"additional_images","","","Link_DecoBack",""
-"additional_images","","","Link_DecoLateral",""
-"additional_images","","","Link_DecoConnPack",""
-"additional_images","","","Link_DecoSinPack",""
-"additional_images","","","Link_DecoCatalogo",""
-"additional_images","","","Link_AccesoriosVISTA3",""
-"additional_images","","","Link_AccesoriosVISTA2",""
-"additional_images","","","Link_AccesoriosVISTA1",""
+magento_field,required,default,guirca,widmann,espa
+sku,yes,,ARTICULO,Codice_prodotto_SKU_Widmann,Style Nr.
+fornitore,,,,,
+EAN,yes,,EAN,EAN,Barcode
+base_image,yes,,LINK,Nome_Immagine_1_,Image URL
+small_image,yes,,LINK,Nome_Immagine_1_,Image URL
+thumbnail_image,yes,,LINK,Nome_Immagine_1_,Image URL
+price,yes,,PVP RECOMENDADO,Prezzo_Listino_PZ_€,Unit Price
+name,,,,,
+description,,,,,
+short_description,,,,,
+url_key,,,,,
+categories,,,,,
+attribute_set_code,,Default,,,
+size,,,TALLA,Taglia,Color-Size 
+color,,,COLORES,Colore,Color-Size 
+product_type,,simple,,,
+product_websites,,base,,,
+tax_class_name,,Taxable Goods,,,
+visibility,,Catalog Search,,,
+display_product_options_in,,Block after Info Column,,,
+msrp_display_actual_price_type,,Use config,,,
+additional_images,,,Link_DisfrazDetalle3,Nome_Immagine_2,
+additional_images,,,Link_DisfrazDetalle2,Nome_Immagine_3,
+additional_images,,,Link_DisfrazDetalle1,Nome_Immagine_4,
+additional_images,,,Link_DisfrazConPack,Nome_Immagine_5,
+additional_images,,,Link_DisfrazUnisex,,
+additional_images,,,Link_DisfrazBack,,
+additional_images,,,Link_DisfrazCatalogo,,
+additional_images,,,Link_AccesoriosCatalogo,,
+additional_images,,,Link_AccesoriosSINPACK,,
+additional_images,,,Link_AccesoriosPACK,,
+additional_images,,,Link_DecoBaterias,,
+additional_images,,,Link_DecoDetalle,,
+additional_images,,,Link_DecoBack,,
+additional_images,,,Link_DecoLateral,,
+additional_images,,,Link_DecoConnPack,,
+additional_images,,,Link_DecoSinPack,,
+additional_images,,,Link_DecoCatalogo,,
+additional_images,,,Link_AccesoriosVISTA3,,
+additional_images,,,Link_AccesoriosVISTA2,,
+additional_images,,,Link_AccesoriosVISTA1,,
